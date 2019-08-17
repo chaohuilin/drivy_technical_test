@@ -28,7 +28,18 @@ RSpec.describe Main do
       expect(main.cars).to eq(expect_cars)
     end
 
-    it "correctly generate the output by type" do
+    it "generate data with wrong type" do
+      expect_output = { :rentals => [
+        {
+          :id => 1,
+        },
+      ] }
+      main = Main.new(File.expand_path("../datasets/input.json", __FILE__))
+      main.generate_output_data(["abc"])
+      expect(main.output).to eq(expect_output)
+    end
+
+    it "generate output with price type" do
       expect_output = { :rentals => [
         {
           :id => 1,
@@ -36,8 +47,82 @@ RSpec.describe Main do
         },
       ] }
       main = Main.new(File.expand_path("../datasets/input.json", __FILE__))
-      puts main.rentals
       main.generate_output_data(["price"])
+      expect(main.output).to eq(expect_output)
+    end
+
+    it "generate data with price_with_discount" do
+      expect_output = { :rentals => [
+        {
+          :id => 1,
+          :price => 6600,
+        },
+      ] }
+      main = Main.new(File.expand_path("../datasets/input.json", __FILE__))
+      main.generate_output_data(["price_with_discount"])
+      expect(main.output).to eq(expect_output)
+    end
+
+    it "generate data with commission type" do
+      expect_output = { :rentals => [{
+        :id => 1,
+        :commission => {
+          :insurance_fee => 990,
+          :assistance_fee => 300,
+          :drivy_fee => 690,
+        },
+      }] }
+      main = Main.new(File.expand_path("../datasets/input.json", __FILE__))
+      main.generate_output_data(["commission"])
+      expect(main.output).to eq(expect_output)
+    end
+
+    it "generate data with commission type" do
+      expect_output = { :rentals => [{
+        :id => 1,
+        :actions => [{
+          :who => "driver",
+          :type => "debit",
+          :amount => 6600,
+        },
+                     {
+          :who => "owner",
+          :type => "credit",
+          :amount => 4620,
+        },
+                     {
+          :who => "insurance",
+          :type => "credit",
+          :amount => 990,
+        },
+                     {
+          :who => "assistance",
+          :type => "credit",
+          :amount => 300,
+        },
+                     {
+          :who => "drivy",
+          :type => "credit",
+          :amount => 690,
+        }],
+      }] }
+      main = Main.new(File.expand_path("../datasets/input.json", __FILE__))
+      main.generate_output_data(["actions"])
+      expect(main.output).to eq(expect_output)
+    end
+
+    it "generate data with multiple types" do
+      expect_output = { :rentals => [{
+        :id => 1,
+        :price => 6600,
+        :commission => {
+          :insurance_fee => 990,
+          :assistance_fee => 300,
+          :drivy_fee => 690,
+        },
+      }] }
+      main = Main.new(File.expand_path("../datasets/input.json", __FILE__))
+      main.generate_output_data(["price_with_discount", "commission"])
       expect(main.output).to eq(expect_output)
     end
   end

@@ -16,9 +16,9 @@ class Main
     begin
       file = File.read(file_name)
       data = JSON.parse(file)
-      puts data
       @rentals = data["rentals"]
       @cars = data["cars"]
+      @options = data["options"] || []
     rescue Errno::ENOENT => e
       raise e, "the file is invalid"
     end
@@ -27,7 +27,7 @@ class Main
   def generate_output_data(types)
     begin
       @rentals.map { |item|
-        rental = Rental.new(item, @cars)
+        rental = Rental.new(item, @cars, @options)
         @output[:rentals] << rental.generate_data_by_types(types)
       }
     rescue NoMethodError, ArgumentError => e

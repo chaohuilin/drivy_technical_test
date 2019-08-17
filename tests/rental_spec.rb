@@ -10,6 +10,11 @@ RSpec.describe Rental do
       "end_date" => "2017-12-10",
       "distance" => 100,
     }
+    @options = [
+      { "id" => 1, "rental_id" => 1, "type" => "gps" },
+      { "id" => 2, "rental_id" => 1, "type" => "baby_seat" },
+      { "id" => 3, "rental_id" => 2, "type" => "additional_insurance" },
+    ]
     @cars = [{ "id" => 1, "price_per_day" => 2000, "price_per_km" => 10 }]
     @rental = Rental.new(@data, @cars)
   end
@@ -133,6 +138,102 @@ RSpec.describe Rental do
       }]
       @rental.commission = commission
       expect(@rental.generate_actions(final_price)).to eq(expect_result)
+    end
+
+    it "create rental with empty options shouldn't fail" do
+      expect { Rental.new(@data, @cars, []) }.not_to raise_error()
+    end
+
+    it "should calculate the correct options fee" do
+      expect_result = {
+        "baby_seat" => 600,
+        "gps" => 1500,
+      }
+      rental = Rental.new(@data, @cars, @options)
+      expect(rental.options_fee).to eq(expect_result)
+    end
+
+    it "should calculate the correct options fee" do
+      expect_result = {
+        "additional_insurance" => 3000,
+      }
+      @options = [{ "id" => 3,
+                    "rental_id" => 1,
+                    "type" => "additional_insurance" }]
+      rental = Rental.new(@data, @cars, @options)
+      expect(rental.options_fee).to eq(expect_result)
+    end
+
+    it "format the result by action with options" do
+      final_price = 10000
+      commission = @rental.calcul_commission(final_price * COMMISSION_RATE, 2)
+      expect_result = [{
+        :who => "driver",
+        :type => "debit",
+        :amount => final_price,
+      },
+                       {
+        :who => "owner",
+        :type => "credit",
+        :amount => (final_price * (1 - COMMISSION_RATE)).round,
+      },
+                       {
+        :who => "insurance",
+        :type => "credit",
+        :amount => commission[:insurance_fee],
+      },
+                       {
+        :who => "assistance",
+        :type => "credit",
+        :amount => commission[:assistance_fee],
+      },
+                       {
+        :who => "drivy",
+        :type => "credit",
+        :amount => commission[:drivy_fee],
+      }]
+      @rental.commission = commission
+      expect(@rental.generate_actions(final_price)).to eq(expect_result)
+    end
+
+    it "options fee should be correctly apply in the output" do
+      final_price = 10000
+      @options = [{ "id" => 1,
+                    "rental_id" => 1,
+                    "type" => "gps" },
+                  { "id" => 2,
+                    "rental_id" => 1,
+                    "type" => "baby_seat" },
+                  { "id" => 3,
+                    "rental_id" => 1,
+                    "type" => "additional_insurance" }]
+      rental = Rental.new(@data, @cars, @options)
+      expect_result = [{
+        :who => "driver",
+        :type => "debit",
+        :amount => final_price + 5100,
+      },
+                       {
+        :who => "owner",
+        :type => "credit",
+        :amount => (final_price * (1 - COMMISSION_RATE)).round + 2100,
+      },
+                       {
+        :who => "insurance",
+        :type => "credit",
+        :amount => rental.commission[:insurance_fee],
+      },
+                       {
+        :who => "assistance",
+        :type => "credit",
+        :amount => rental.commission[:assistance_fee],
+      },
+                       {
+        :who => "drivy",
+        :type => "credit",
+        :amount => rental.commission[:drivy_fee] + 3000,
+      }]
+      expect(rental.generate_actions(final_price)).to eq(expect_result)
     end
   end
 end

@@ -4,10 +4,17 @@ require_relative("./car")
 require_relative("./constant")
 
 class Rental
-  attr_reader :id, :car, :distance, :rent_duration, :distance_fee, :rent_fee, :commission
+  attr_reader :id,
+              :car,
+              :distance,
+              :rent_duration,
+              :distance_fee,
+              :rent_fee,
+              :commission,
+              :options_fee
   attr_writer :commission
 
-  def initialize(data, cars)
+  def initialize(data, cars, options = [])
     @id = data["id"]
     @car = get_selected_car(data["car_id"], cars)
     @distance = data["distance"]
@@ -17,6 +24,7 @@ class Rental
     @rent_fee = calcul_rent_fee()
     @commission = calcul_commission(@distance_fee + @rent_fee - @discount_fee,
                                     @rent_duration)
+    @options_fee = calcul_options_fee(options)
   end
 
   def get_selected_car(car_id, cars)
@@ -79,6 +87,19 @@ class Rental
            }
   end
 
+  def calcul_options_fee(options)
+    fee_by_type = { "gps" => GPS_FEE,
+                   "baby_seat" => BABY_SEAT_FEE,
+                   "additional_insurance" => ADDITIONAL_INSURANCE_FEE }
+    options_fee = {}
+    options.each { |item|
+      if (item["rental_id"] === @id)
+        options_fee[item["type"]] = @rent_duration * fee_by_type[item["type"]]
+      end
+    }
+    return options_fee
+  end
+
   def generate_data_by_types(types)
     output = {
       :id => @id,
@@ -100,15 +121,17 @@ class Rental
   end
 
   def generate_actions(final_price)
+    owner_extra = (@options_fee["gps"] || 0) + (@options_fee["baby_seat"] || 0)
+    drivy_extra = @options_fee["additional_insurance"] || 0
     [{
       :who => "driver",
       :type => "debit",
-      :amount => final_price,
+      :amount => final_price + owner_extra + drivy_extra,
     },
      {
       :who => "owner",
       :type => "credit",
-      :amount => (final_price * (1 - COMMISSION_RATE)).round,
+      :amount => (final_price * (1 - COMMISSION_RATE)).round + owner_extra,
     },
      {
       :who => "insurance",
@@ -123,7 +146,7 @@ class Rental
      {
       :who => "drivy",
       :type => "credit",
-      :amount => @commission[:drivy_fee],
+      :amount => @commission[:drivy_fee] + drivy_extra,
     }]
   end
 end
