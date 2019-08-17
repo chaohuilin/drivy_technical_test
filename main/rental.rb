@@ -1,6 +1,7 @@
 
 require "date"
 require_relative("./car")
+require_relative("./constant")
 
 class Rental
   attr_reader :id, :car, :distance, :rent_duration, :distance_fee, :rent_fee
@@ -13,6 +14,8 @@ class Rental
     @distance_fee = calcul_distance_fee()
     @discount_fee = calcul_discount_fee(@rent_duration)
     @rent_fee = calcul_rent_fee()
+    @commission = calcul_commission(@distance_fee + @rent_fee - @discount_fee,
+                                    @rent_duration)
   end
 
   def get_selected_car(car_id, cars)
@@ -44,12 +47,35 @@ class Rental
   end
 
   def calcul_discount_fee(days)
-    ### TO DO : improve with a better algorith ###
-    ten_percent = days > 1 ? ((days >= 3 ? 3 : days - 1) * 0.1) : 0
-    thirty_percent = days > 4 ? ((days >= 10 ? 6 : days - 4) * 0.3) : 0
-    fitfy_percent = days > 10 ? (days - 10) * 0.5 : 0
+    ### TO DO : improve with a better algorithm ###
+    ten_percent = days > 1 ?
+      ((days > INITIAL_DISCOUNT[:days] ?
+      INITIAL_DISCOUNT[:days] :
+      days - 1) * INITIAL_DISCOUNT[:discount]) :
+      0
+    thirty_percent = days > INITIAL_DISCOUNT[:days] ?
+      ((days >= MEDIUM_DISCOUNT[:days] ?
+      MEDIUM_DISCOUNT[:days] - INITIAL_DISCOUNT[:days] - 1 :
+      days - INITIAL_DISCOUNT[:days] - 1) * MEDIUM_DISCOUNT[:discount]) :
+      0
+    fitfy_percent = days > ADVANCE_DISCOUNT[:days] ?
+      (days - ADVANCE_DISCOUNT[:days]) *
+      ADVANCE_DISCOUNT[:discount] :
+      0
     return (@car.price_per_day *
             (ten_percent + thirty_percent + fitfy_percent)).round
+  end
+
+  def calcul_commission(total_price, days)
+    commission = (total_price * COMMISSION_RATE).round
+    insurance_fee = (commission * INSURANCE_RATE).round
+    assistance_fee = days * ASSISTANCE_FEE
+    drivy_fee = commission - insurance_fee - assistance_fee
+    return {
+             :insurance_fee => insurance_fee,
+             :assistance_fee => assistance_fee,
+             :drivy_fee => drivy_fee,
+           }
   end
 
   def generate_data_by_types(types)
@@ -62,6 +88,8 @@ class Rental
         output[:price] = @rent_fee + @distance_fee
       when "price_with_discount"
         output[:price] = @rent_fee + @distance_fee - @discount_fee
+      when "commission"
+        output[:commission] = @commission
       end
     }
     return output

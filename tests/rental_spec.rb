@@ -93,5 +93,14 @@ RSpec.describe Rental do
     it "calculates discount for more than 10 days booking" do
       expect(@rental.calcul_discount_fee(12)).to eq(6200)
     end
+
+    it "calculates commission" do
+      expect_result = {
+        :insurance_fee => 1500,
+        :assistance_fee => 200,
+        :drivy_fee => 1300,
+      }
+      expect(@rental.calcul_commission(10000, 2)).to eq(expect_result)
+    end
   end
 end
