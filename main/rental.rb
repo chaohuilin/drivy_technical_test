@@ -11,6 +11,7 @@ class Rental
     @distance = data["distance"]
     @rent_duration = calcul_duration(data["start_date"], data["end_date"])
     @distance_fee = calcul_distance_fee()
+    @discount_fee = calcul_discount_fee(@rent_duration)
     @rent_fee = calcul_rent_fee()
   end
 
@@ -42,6 +43,15 @@ class Rental
     return @car.price_per_day * @rent_duration
   end
 
+  def calcul_discount_fee(days)
+    ### TO DO : improve with a better algorith ###
+    ten_percent = days > 1 ? ((days >= 3 ? 3 : days - 1) * 0.1) : 0
+    thirty_percent = days > 4 ? ((days >= 10 ? 6 : days - 4) * 0.3) : 0
+    fitfy_percent = days > 10 ? (days - 10) * 0.5 : 0
+    return (@car.price_per_day *
+            (ten_percent + thirty_percent + fitfy_percent)).round
+  end
+
   def generate_data_by_types(types)
     output = {
       :id => @id,
@@ -50,6 +60,8 @@ class Rental
       case type
       when "price"
         output[:price] = @rent_fee + @distance_fee
+      when "price_with_discount"
+        output[:price] = @rent_fee + @distance_fee - @discount_fee
       end
     }
     return output
