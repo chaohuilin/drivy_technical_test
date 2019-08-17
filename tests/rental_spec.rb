@@ -102,5 +102,37 @@ RSpec.describe Rental do
       }
       expect(@rental.calcul_commission(10000, 2)).to eq(expect_result)
     end
+
+    it "format the result by action" do
+      final_price = 10000
+      commission = @rental.calcul_commission(final_price * COMMISSION_RATE, 2)
+      expect_result = [{
+        :who => "driver",
+        :type => "debit",
+        :amount => final_price,
+      },
+                       {
+        :who => "owner",
+        :type => "credit",
+        :amount => (final_price * (1 - COMMISSION_RATE)).round,
+      },
+                       {
+        :who => "insurance",
+        :type => "credit",
+        :amount => commission[:insurance_fee],
+      },
+                       {
+        :who => "assistance",
+        :type => "credit",
+        :amount => commission[:assistance_fee],
+      },
+                       {
+        :who => "drivy",
+        :type => "credit",
+        :amount => commission[:drivy_fee],
+      }]
+      @rental.commission = commission
+      expect(@rental.generate_actions(final_price)).to eq(expect_result)
+    end
   end
 end

@@ -40,8 +40,5 @@ RSpec.describe Main do
       main.generate_output_data(["price"])
       expect(main.output).to eq(expect_output)
     end
-
-    it "correctly generate the output by type" do
-    end
   end
 end

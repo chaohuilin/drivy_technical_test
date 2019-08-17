@@ -4,7 +4,8 @@ require_relative("./car")
 require_relative("./constant")
 
 class Rental
-  attr_reader :id, :car, :distance, :rent_duration, :distance_fee, :rent_fee
+  attr_reader :id, :car, :distance, :rent_duration, :distance_fee, :rent_fee, :commission
+  attr_writer :commission
 
   def initialize(data, cars)
     @id = data["id"]
@@ -83,15 +84,46 @@ class Rental
       :id => @id,
     }
     types.map { |type|
+      final_price = @rent_fee + @distance_fee - @discount_fee
       case type
       when "price"
         output[:price] = @rent_fee + @distance_fee
       when "price_with_discount"
-        output[:price] = @rent_fee + @distance_fee - @discount_fee
+        output[:price] = final_price
       when "commission"
         output[:commission] = @commission
+      when "actions"
+        output[:actions] = generate_actions(final_price)
       end
     }
     return output
+  end
+
+  def generate_actions(final_price)
+    [{
+      :who => "driver",
+      :type => "debit",
+      :amount => final_price,
+    },
+     {
+      :who => "owner",
+      :type => "credit",
+      :amount => (final_price * (1 - COMMISSION_RATE)).round,
+    },
+     {
+      :who => "insurance",
+      :type => "credit",
+      :amount => @commission[:insurance_fee],
+    },
+     {
+      :who => "assistance",
+      :type => "credit",
+      :amount => @commission[:assistance_fee],
+    },
+     {
+      :who => "drivy",
+      :type => "credit",
+      :amount => @commission[:drivy_fee],
+    }]
   end
 end
