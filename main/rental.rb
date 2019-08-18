@@ -111,6 +111,8 @@ class Rental
         output[:price] = @rent_fee + @distance_fee
       when "price_with_discount"
         output[:price] = final_price
+      when "options"
+        output[:options] = @options_fee.keys
       when "commission"
         output[:commission] = @commission
       when "actions"
